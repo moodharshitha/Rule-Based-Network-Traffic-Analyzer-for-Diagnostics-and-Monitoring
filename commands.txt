@@ -1,0 +1,11 @@
+scapy
+
+
+pkts = sniff(count=30)
+
+-----------------------
+ping google.com
+
+
+wrpcap("offline.pcap", pkts)
+exit()

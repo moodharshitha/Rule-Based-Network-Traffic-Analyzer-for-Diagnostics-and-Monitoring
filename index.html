@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Network Traffic Analyzer</title>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: linear-gradient(135deg, #020617, #020617);
+    color: white;
+}
+
+header {
+    background: #020617;
+    padding: 20px;
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+.container {
+    width: 95%;
+    margin: auto;
+    margin-top: 20px;
+}
+
+.controls {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+button {
+    padding: 12px 25px;
+    margin: 10px;
+    font-size: 15px;
+    font-weight: bold;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.live {
+    background: #22c55e;
+}
+
+.offline {
+    background: #38bdf8;
+}
+
+.card {
+    background: #020617;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    box-shadow: 0 0 15px rgba(56,189,248,0.3);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 10px;
+    border-bottom: 1px solid #1e293b;
+    text-align: center;
+}
+
+th {
+    background: #020617;
+}
+
+.alert {
+    color: #f87171;
+    font-weight: bold;
+}
+.normal {
+    color: #22c55e;
+    font-weight: bold;
+}
+
+canvas {
+    background: #020617;
+    border-radius: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+🔐 Rule-Based Network Traffic Analyzer  
+<br><small>Real-Time & Offline Diagnostics with Security Monitoring</small>
+</header>
+
+<div class="container">
+
+<div class="controls">
+    <button class="live" onclick="startLive()">Live Mode</button>
+    <button class="offline" onclick="loadOffline()">Offline Mode</button>
+</div>
+
+<div class="card">
+    <h3>📊 Packet Size Analysis (Graph)</h3>
+    <canvas id="trafficChart"></canvas>
+</div>
+
+<div class="card">
+    <h3>📋 Network Traffic Details</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Source IP</th>
+                <th>Destination IP</th>
+                <th>Size (Bytes)</th>
+                <th>Protocol</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody id="tableData"></tbody>
+    </table>
+</div>
+
+</div>
+
+<script>
+let chart;
+let labels = [];
+let packetSizes = [];
+
+const ctx = document.getElementById("trafficChart").getContext("2d");
+
+chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'Packet Size (Bytes)',
+            data: packetSizes,
+            borderWidth: 2,
+            tension: 0.3
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                labels: { color: "white" }
+            }
+        },
+        scales: {
+            x: {
+                ticks: { color: "white" }
+            },
+            y: {
+                ticks: { color: "white" }
+            }
+        }
+    }
+});
+
+function updateUI(data) {
+    const table = document.getElementById("tableData");
+    table.innerHTML = "";
+
+    labels.length = 0;
+    packetSizes.length = 0;
+
+    data.forEach(d => {
+        labels.push(d.time);
+        packetSizes.push(d.packet_size);
+
+        table.innerHTML += `
+        <tr>
+            <td>${d.time}</td>
+            <td>${d.source_ip}</td>
+            <td>${d.destination_ip}</td>
+            <td>${d.packet_size}</td>
+            <td>${d.protocol}</td>
+            <td class="${d.alert === 'Normal' ? 'normal' : 'alert'}">${d.alert}</td>
+        </tr>`;
+    });
+
+    chart.update();
+}
+
+let liveInterval;
+
+function startLive() {
+    clearInterval(liveInterval);
+    liveInterval = setInterval(() => {
+        fetch("http://127.0.0.1:5000/traffic")
+        .then(res => res.json())
+        .then(updateUI);
+    }, 2000);
+}
+
+function loadOffline() {
+    clearInterval(liveInterval);
+    fetch("http://127.0.0.1:5000/offline")
+    .then(res => res.json())
+    .then(updateUI);
+}
+</script>
+
+</body>
+</html>
